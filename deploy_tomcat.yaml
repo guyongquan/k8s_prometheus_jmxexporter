@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: tomcat
+  name: tomcat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tomcat
+  template:
+    metadata:
+      annotations:
+        learn.guyongquan.live/prometheusjmxexporterport: "18080"
+      labels:
+        app: tomcat
+    spec:
+      containers:
+       - env:
+          - name: CATALINA_OPTS
+            value: -javaagent:/data/jmxexporter.jar=18080:/data/tomcat.yml
+         image: tomcat
+         name: tomcat
+         imagePullPolicy: Always
+         resources:
+            requests:
+              cpu: 200m
+              memory: 200Mi
+         ports:
+          - containerPort: 8080
+         livenessProbe:
+           tcpSocket:
+             port: 8080
+         volumeMounts:
+          - mountPath: /data/jmxexporter.jar
+            name: jmxjar
+            subPath: jmxexporter.jar
+          - mountPath: /data/tomcat.yml
+            name: jmxconfig
+            subPath: tomcat.yml
+      restartPolicy: Always
+      volumes:
+       - name: jmxjar
+         configMap:
+          name: jmxexporterfiles
+          items:
+            - key: jmxexporter.jar
+              path: jmxexporter.jar
+       - name: jmxconfig
+         configMap:
+          name: jmxexporterfiles
+          items:
+            - key: tomcat.yml
+              path: tomcat.yml
